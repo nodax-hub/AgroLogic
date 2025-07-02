@@ -17,7 +17,12 @@ endif()
 #----------------------------------------------------------------------------------------------------------------------
 
 include(FetchContent)
-FetchContent_Declare(googletest URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.tar.gz)
+FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/refs/tags/release-1.12.1.tar.gz
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE  # эквивалент CMP0135 NEW
+)
+
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE) # do not override parent project's runtime settings on Windows
 set(INSTALL_GTEST OFF)
