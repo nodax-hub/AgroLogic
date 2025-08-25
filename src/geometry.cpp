@@ -2,6 +2,7 @@
 #include <mylib/geometry.h>
 
 #include <cmath>
+#include <stdexcept>
 #include <utility>
 
 namespace mylib {
@@ -27,6 +28,52 @@ std::vector<double> polyline_lengths(const std::vector<Point>& pts)
     return s;
 }
 
+Point point_on_path(const std::vector<Point>& pts, double distance)
+{
+    if (pts.empty()) {
+        throw std::invalid_argument("Список точек пуст");
+    }
+    if (distance < 0.0) {
+        throw std::invalid_argument("Дистанция не может быть отрицательной");
+    }
+
+    const std::vector<double> s = polyline_lengths(pts);
+    const double length = s.back();
+
+    if (distance > length) {
+        throw std::invalid_argument("Дистанция больше длины траектории");
+    }
+
+    if (distance == 0.0) {
+        return pts.front();
+    }
+    if (distance == length) {
+        return pts.back();
+    }
+
+    // Найти индекс правой границы: s[i-1] <= distance < s[i]
+    auto it = std::upper_bound(s.begin(), s.end(), distance);
+    std::size_t i = static_cast<std::size_t>(it - s.begin());
+
+    // Пролистываем нулевые сегменты: s может иметь одинаковые соседние значения
+    while (i < s.size() && s[i] == s[i - 1]) {
+        ++i;
+    }
+
+    if (i >= pts.size()) {
+        // Теоретически недостижимо при проверках выше
+        throw std::runtime_error("Не найден валидный сегмент (все оставшиеся сегменты нулевой длины)");
+    }
+
+    const Point& p1 = pts[i - 1];
+    const Point& p2 = pts[i];
+    const double seg_len = s[i] - s[i - 1]; // > 0 после пролистывания
+    const double t = (distance - s[i - 1]) / seg_len;
+
+    const double x_ = p1.x + t * (p2.x - p1.x);
+    const double y_ = p1.y + t * (p2.y - p1.y);
+    return Point{x_, y_};
+}
 Polygon::Polygon(std::vector<Point> vertices)
     : vertices_(std::move(vertices))
 {

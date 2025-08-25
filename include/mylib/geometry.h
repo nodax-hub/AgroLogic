@@ -15,7 +15,6 @@ struct MYLIB_EXPORT Point {
     constexpr Point(double x_, double y_) : x(x_), y(y_) {}
     bool operator==(const Point& other) const noexcept { return x == other.x && y == other.y; }
 };
-;
 
 struct MYLIB_EXPORT BoundPoints {
     Point start;
@@ -36,13 +35,15 @@ MYLIB_EXPORT double dot(double ax, double ay, double bx, double by);
 /// Накопленная длина вдоль ломаной: s[i] — расстояние от начала до pts[i].
 MYLIB_EXPORT std::vector<double> polyline_lengths(const std::vector<Point>& pts);
 
+MYLIB_EXPORT Point point_on_path(const std::vector<Point>& pts, double distance);
+
 class MYLIB_EXPORT Polygon {
 public:
     explicit Polygon(std::vector<Point> vertices);
 
-    const std::vector<Point>& vertices() const noexcept { return vertices_; }
+    [[nodiscard]] const std::vector<Point>& vertices() const noexcept { return vertices_; }
 
-    double area() const noexcept;
+    [[nodiscard]] double area() const noexcept;
 
 private:
     std::vector<Point> vertices_;
