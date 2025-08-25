@@ -1,1 +1,2 @@
-add_subdirectory(add)
+add_subdirectory(example_add)
+add_subdirectory(example_geometry)

@@ -57,8 +57,9 @@ generate_export_header(mylib EXPORT_FILE_NAME include/mylib/${export_file_name})
 
 set(sources
     include/mylib/export.h
-    include/mylib/mylib.h
-    src/mylib.cpp)
+    include/mylib/mylib.h       src/mylib.cpp
+    include/mylib/geometry.h    src/geometry.cpp
+)
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${sources})
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -76,6 +77,9 @@ target_include_directories(mylib
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>")
 
 set_target_properties(mylib PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS NO
     SOVERSION ${PROJECT_VERSION_MAJOR}
     VERSION ${PROJECT_VERSION})
 

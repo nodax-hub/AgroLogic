@@ -46,7 +46,10 @@ endif()
 #----------------------------------------------------------------------------------------------------------------------
 
 set(sources
-    add_test.cpp)
+    add_test.cpp
+    geometry_test.cpp
+)
+
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${sources})
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -55,6 +58,7 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${sources})
 
 add_executable(mylib-tests)
 target_sources(mylib-tests PRIVATE ${sources})
+target_compile_features(mylib-tests PRIVATE cxx_std_17)
 
 target_link_libraries(mylib-tests
     PRIVATE
