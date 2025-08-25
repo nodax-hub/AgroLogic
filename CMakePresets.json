@@ -13,7 +13,8 @@
       "hidden": true,
       "cacheVariables": {
         "MYLIB_BUILD_TESTS": "ON",
-        "MYLIB_BUILD_EXAMPLES": "ON"
+        "MYLIB_BUILD_EXAMPLES": "ON",
+        "MYLIB_WITH_PROJ": "OFF"
       }
     },
     {

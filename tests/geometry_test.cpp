@@ -7,8 +7,7 @@
 
 constexpr double kEps = 1e-12;
 
-using mylib::Point;
-using mylib::point_on_path;
+using namespace mylib;
 
 // Вспомогательная заглушка polyline_lengths может быть уже реализована у вас.
 // Тесты предполагают корректную работу polyline_lengths.
@@ -184,3 +183,68 @@ TEST(polygon_test, area_colinear_points_zero)
     const mylib::Polygon colinear({{0.0, 0.0}, {1.0, 1.0}, {2.0, 2.0}, {3.0, 3.0}});
     EXPECT_NEAR(colinear.area(), 0.0, kEps);
 }
+
+
+static inline void expect_near_point(const Point& p, const Point& q, double eps)
+{
+    EXPECT_NEAR(p.x, q.x, eps);
+    EXPECT_NEAR(p.y, q.y, eps);
+}
+
+TEST(geo_to_xy_equirectangular, zero_delta_is_zero_xy)
+{
+    mylib::GeoToXYEquirectangular prj;
+    GeoPoint c{30.0, 60.0};
+    GeoPoint g{30.0, 60.0};
+    auto xy = prj.geo_to_xy(c, g);
+    expect_near_point(xy, Point{0.0, 0.0}, 1e-9);
+}
+
+TEST(geo_to_xy_equirectangular, small_shift_matches_formula)
+{
+    mylib::GeoToXYEquirectangular prj;
+    GeoPoint c{0.0, 0.0};
+    GeoPoint g{0.001, 0.001}; // ~111 м по широте, ~111 м по долготе на экваторе
+    auto xy = prj.geo_to_xy(c, g);
+    // Ожидаемые приближения:
+    const double R = mylib::GeoToXYEquirectangular::R;
+    const double lon = g.lon * kPI / 180.0;
+    const double lat = g.lat * kPI / 180.0;
+    Point expected{R * lon * std::cos(0.0), R * lat};
+    expect_near_point(xy, expected, 1e-6);
+}
+
+TEST(geo_to_xy_common, utm_zone_from_lon_bounds)
+{
+    EXPECT_EQ(mylib::GeoToXYUtm::utm_zone_from_lon(-180.0), 1);
+    EXPECT_EQ(mylib::GeoToXYUtm::utm_zone_from_lon(179.999), 60);
+}
+
+#if !defined(MYLIB_WITH_PROJ)
+TEST(geo_to_xy_proj_required, aeqd_throws_without_proj)
+{
+    mylib::GeoToXYAeqd prj;
+    EXPECT_THROW(([&]{
+        [[maybe_unused]] auto _ = prj.geo_to_xy({0,0}, {1,1});
+    }()), std::runtime_error);
+}
+
+TEST(geo_to_xy_proj_required, utm_throws_without_proj)
+{
+    mylib::GeoToXYUtm prj;
+    EXPECT_THROW(([&]{
+        [[maybe_unused]] auto _ = prj.geo_to_xy({0,0}, {1,1});
+    }()), std::runtime_error);
+}
+#else
+TEST(geo_to_xy_proj_available, aeqd_and_eq_coincide_at_center)
+{
+    mylib::GeoToXYAeqd aeqd;
+    mylib::GeoToXYEquirectangular eq;
+    mylib::GeoPoint c{10.0, 50.0};
+    auto p1 = aeqd.geo_to_xy(c, c);
+    auto p2 = eq.geo_to_xy(c, c);
+    expect_near_point(p1, mylib::Point{0.0, 0.0}, 1e-9);
+    expect_near_point(p2, mylib::Point{0.0, 0.0}, 1e-9);
+}
+#endif

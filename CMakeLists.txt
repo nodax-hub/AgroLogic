@@ -40,7 +40,65 @@ add_library(mylib::mylib ALIAS mylib)
 # mylib dependencies
 #----------------------------------------------------------------------------------------------------------------------
 
-# Search for your dependencies here
+# Опция: собирать с PROJ (для AEQD/UTM). По умолчанию OFF.
+option(MYLIB_WITH_PROJ "Build mylib with vendored static PROJ and use it privately" OFF)
+
+include(FetchContent)
+
+if(MYLIB_WITH_PROJ)
+    include(FetchContent)
+
+    # Новая политика по умолчанию для FetchContent (чтобы не было предупреждений)
+    if(POLICY CMP0169)
+        cmake_policy(SET CMP0169 NEW)
+    endif()
+
+    # Сборка статической libproj и PIC (если mylib — SHARED)
+    set(_SAVED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+    # --- КЛЮЧЕВОЕ: задать опции подпроекта ДО его подключения ---
+    # названия опций зависят от версии PROJ; ставим все релевантные в OFF
+    set(ENABLE_SQLITE3      OFF CACHE BOOL "" FORCE)
+    set(PROJ_ENABLE_SQLITE3 OFF CACHE BOOL "" FORCE)
+    set(ENABLE_SQLITE       OFF CACHE BOOL "" FORCE)
+
+    set(ENABLE_TIFF         OFF CACHE BOOL "" FORCE)
+    set(ENABLE_CURL         OFF CACHE BOOL "" FORCE)
+
+    # CLI-утилиты PROJ нам не нужны внутри библиотеки
+    set(BUILD_PROJ          OFF CACHE BOOL "" FORCE)
+    set(BUILD_PROJINFO      OFF CACHE BOOL "" FORCE)
+    set(BUILD_CS2CS         OFF CACHE BOOL "" FORCE)
+    set(BUILD_CCT           OFF CACHE BOOL "" FORCE)
+    set(BUILD_GIE           OFF CACHE BOOL "" FORCE)
+    set(BUILD_PROJSYNC      OFF CACHE BOOL "" FORCE)
+
+    # установка нам тоже не обязательна
+    set(PROJ_INSTALL        OFF CACHE BOOL "" FORCE)
+
+    # Объявляем и подключаем ПРОЕКТ стандартным способом
+    FetchContent_Declare(
+            PROJ
+            GIT_REPOSITORY https://github.com/OSGeo/PROJ.git
+            GIT_TAG        9.4.0
+            UPDATE_DISCONNECTED YES
+    )
+    FetchContent_MakeAvailable(PROJ)  # <-- без Populate
+
+    # Восстановить исходное значение, если важно для остальной сборки
+    set(BUILD_SHARED_LIBS ${_SAVED_BUILD_SHARED_LIBS} CACHE BOOL "" FORCE)
+
+    # Линкуем приватно
+    target_compile_definitions(mylib PRIVATE MYLIB_WITH_PROJ)
+    target_link_libraries(mylib PRIVATE PROJ::proj)
+
+    # Прячем символы статически прилинкованных архивов (не актуально для MSVC)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_link_options(mylib PRIVATE "LINKER:--exclude-libs,ALL")
+    endif()
+endif()
 
 #----------------------------------------------------------------------------------------------------------------------
 # mylib sources
@@ -70,6 +128,16 @@ include(CMakePackageConfigHelpers)
 
 target_sources(mylib PRIVATE ${sources})
 target_compile_definitions(mylib PUBLIC "$<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:MYLIB_STATIC_DEFINE>")
+
+if(MYLIB_WITH_PROJ)
+    target_compile_definitions(mylib PRIVATE MYLIB_WITH_PROJ)
+    target_link_libraries(mylib PRIVATE ${_MYLIB_PROJ_TARGET})
+
+    # Сокрытие символов статически прилинкованных архивов в ELF (GNU ld, LLD):
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_link_options(mylib PRIVATE "LINKER:--exclude-libs,ALL")
+    endif()
+endif()
 
 target_include_directories(mylib
     PUBLIC
